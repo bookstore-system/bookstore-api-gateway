@@ -14,24 +14,81 @@ spring:
               - PUT
               - DELETE
               - OPTIONS
+              - PATCH
             allowedHeaders: "*"
             allowCredentials: true
 
       routes:
+        # Auth & User Service
         - id: auth-service
           uri: http://user-service:8080
           predicates:
-            - Path=/api/auth/**
-
-        - id: book-service
-          uri: http://book-service:8080
-          predicates:
-            - Path=/api/books/**
+            - Path=/api/v1/auth/**
 
         - id: user-service
           uri: http://user-service:8080
           predicates:
-            - Path=/api/users/**
+            - Path=/api/v1/users/**
+
+        # Book Service
+        - id: book-service
+          uri: http://book-service:8080
+          predicates:
+            - Path=/api/v1/books/**
+
+        # Cart Service
+        - id: cart-service
+          uri: http://cart-service:8080
+          predicates:
+            - Path=/api/v1/carts/**
+
+        # Order Service
+        - id: order-service
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/v1/orders/**
+
+        # Payment Service
+        - id: payment-service
+          uri: http://payment-service:8080
+          predicates:
+            - Path=/api/v1/payments/**
+
+        # Promotion Service
+        - id: promotion-service
+          uri: http://promotion-service:8080
+          predicates:
+            - Path=/api/v1/promotions/**
+
+        # Review Service
+        - id: review-service
+          uri: http://review-service:8080
+          predicates:
+            - Path=/api/v1/reviews/**
+
+        # Shipping Service
+        - id: shipping-service
+          uri: http://shipping-service:8080
+          predicates:
+            - Path=/api/v1/shipping/**
+
+        # News Service
+        - id: news-service
+          uri: http://news-service:8080
+          predicates:
+            - Path=/api/v1/news/**
+
+        # AI Service
+        - id: ai-service
+          uri: http://ai-service:8080
+          predicates:
+            - Path=/api/v1/ai/**
+
+        # Notification Service
+        # - id: notification-service
+        #   uri: http://notification-service:8080
+        #   predicates:
+        #     - Path=/api/v1/notifications/**
 
 server:
   port: 8080
