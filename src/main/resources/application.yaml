@@ -1,3 +1,37 @@
 spring:
   application:
     name: bookstore-api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+      routes:
+        - id: auth-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/auth/**
+
+        - id: book-service
+          uri: http://book-service:8080
+          predicates:
+            - Path=/api/books/**
+
+        - id: user-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/users/**
+
+server:
+  port: 8080
