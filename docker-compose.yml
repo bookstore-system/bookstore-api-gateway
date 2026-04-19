@@ -1,9 +1,16 @@
 version: '3.8'
 
 services:
-  gateway:
-    build: .
-    container_name: gateway
+  api-gateway:
+    image: maven:3.9.6-eclipse-temurin-21
+    container_name: dev-api-gateway
+    working_dir: /app
+    command: sh -c "./mvnw spring-boot:run -Dspring-boot.run.profiles=dev"
+    environment:
+      - SPRING_DEVTOOLS_RESTART_ENABLED=true
+    volumes:
+      - .:/app
+      - maven-repo:/root/.m2
     ports:
       - "8080:8080"
     networks:
@@ -11,4 +18,8 @@ services:
 
 networks:
   bookstore-network:
-    name: bookstore-network
+    external: true
+
+volumes:
+  maven-repo:
+    name: shared-maven-repo
