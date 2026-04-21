@@ -41,6 +41,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 .noneMatch(uri -> r.getURI().getPath().contains(uri));
 
         if (isApiSecured.test(request)) {
+            /*
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return onError(exchange, "Missing Authorization Header", HttpStatus.UNAUTHORIZED);
             }
@@ -65,6 +66,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                             return onError(exchange, "Token unauthenticated", HttpStatus.UNAUTHORIZED);
                         }
                     }).onErrorResume(e -> onError(exchange, "Authentication failed", HttpStatus.UNAUTHORIZED));
+            */
+            return chain.filter(exchange);
         }
 
         return chain.filter(exchange);
