@@ -2,16 +2,10 @@ version: '3.8'
 
 services:
   api-gateway:
-    build: 
-      context: .
-      target: build
+    image: truongikpk/bookstore-api-gateway:v1.0.0
     container_name: api-gateway
     ports:
       - "8080:8080"
-    volumes:
-      - .:/build
-      - ~/.m2:/root/.m2
-    command: mvn spring-boot:run -Dspring-boot.run.profiles=docker
     environment:
       SPRING_PROFILES_ACTIVE: docker
     networks:
