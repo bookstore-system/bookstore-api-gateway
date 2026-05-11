@@ -8,7 +8,7 @@
 		<version>3.2.5</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.hamtech</groupId>
+	<groupId>com.notfound</groupId>
 	<artifactId>bookstore-api-gateway</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>bookstore-api-gateway</name>

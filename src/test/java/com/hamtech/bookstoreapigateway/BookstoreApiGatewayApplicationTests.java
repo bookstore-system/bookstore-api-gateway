@@ -1,4 +1,4 @@
-package com.hamtech.bookstoreapigateway;
+package com.notfound.bookstoreapigateway;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,4 +1,4 @@
-package com.hamtech.bookstoreapigateway.filter;
+package com.notfound.bookstoreapigateway.filter;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

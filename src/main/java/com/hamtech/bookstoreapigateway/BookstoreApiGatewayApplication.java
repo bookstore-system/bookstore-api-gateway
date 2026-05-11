@@ -1,6 +1,6 @@
-package com.hamtech.bookstoreapigateway;
+package com.notfound.bookstoreapigateway;
 
-import com.hamtech.bookstoreapigateway.config.DotenvBootstrap;
+import com.notfound.bookstoreapigateway.config.DotenvBootstrap;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

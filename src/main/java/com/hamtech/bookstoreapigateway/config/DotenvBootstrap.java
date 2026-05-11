@@ -1,4 +1,4 @@
-package com.hamtech.bookstoreapigateway.config;
+package com.notfound.bookstoreapigateway.config;
 
 import io.github.cdimascio.dotenv.Dotenv;
 
