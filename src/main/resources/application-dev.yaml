@@ -1,6 +1,13 @@
 # ============================================================
-# Profile: dev  — dùng với Docker Compose (docker-compose.dev.yml / docker-compose.yml)
-# Service URL trỏ tới container name trong bookstore-network
+# Profile: dev  — dùng với Docker Compose (docker-compose.yml) hoặc local:
+#   mvn spring-boot:run -Dspring-boot.run.profiles=dev
+#
+# Biến môi trường (JWT, profile, …):
+#   - Docker: docker-compose.yml dùng env_file: .env + environment (SPRING_PROFILES_ACTIVE=dev).
+#   - Local không Docker: export biến hoặc cấu hình Run Configuration IDE / -DKEY=value.
+#
+# Biến dùng bởi AuthenticationFilter (không khai báo dưới đây, chỉ để đối chiếu):
+#   JWT_PUBLIC_CERT_PEM | APP_JWT_PUBLIC_KEY | fallback classpath keys/public.pem
 #
 # FE gọi gateway với chuẩn /api/v1/... (không dùng /v1/api/...).
 # Các route "legacy" map path monolith cũ (/api/auth, /api/books, ...) → /api/v1/... trên micro.
@@ -23,7 +30,7 @@ spring:
         - id: book-service
           uri: http://book-service:8080
           predicates:
-            - Path=/api/v1/books/**, /api/v1/categories/**, /api/v1/authors/**
+            - Path=/api/v1/books/**, /api/v1/categories/**, /api/v1/authors/**, /api/v1/admin/books/**, /api/v1/admin/**
 
         - id: cart-service
           uri: http://cart-service:8080
