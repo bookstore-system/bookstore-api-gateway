@@ -18,11 +18,12 @@ services:
     volumes:
       - .:/build
       - ~/.m2:/root/.m2
-    # .env → biến môi trường trong container (APP_JWT_PUBLIC_KEY, SPRING_PROFILES_ACTIVE, …)
+      - ./key:/key:ro
     env_file:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      APP_JWT_KEYS_DIR: /key
     # Profile dev → application-dev.yaml
     command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
     networks:
