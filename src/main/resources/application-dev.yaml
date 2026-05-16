@@ -6,8 +6,7 @@
 #   - Docker: docker-compose.yml dùng env_file: .env + environment (SPRING_PROFILES_ACTIVE=dev).
 #   - Local không Docker: export biến hoặc cấu hình Run Configuration IDE / -DKEY=value.
 #
-# Biến dùng bởi AuthenticationFilter (không khai báo dưới đây, chỉ để đối chiếu):
-#   JWT_PUBLIC_CERT_PEM | APP_JWT_PUBLIC_KEY | fallback classpath keys/public.pem
+# JWT public key: thư mục key/ (local ./key, Docker mount /key)
 #
 # FE gọi gateway với chuẩn /api/v1/... (không dùng /v1/api/...).
 # Các route "legacy" map path monolith cũ (/api/auth, /api/books, ...) → /api/v1/... trên micro.
@@ -16,7 +15,6 @@ spring:
   cloud:
     gateway:
       routes:
-        # --- Chuẩn micro (đã là /api/v1/... hoặc /api/... đúng service) ---
         - id: auth-service
           uri: http://user-service:8080
           predicates:
@@ -76,6 +74,11 @@ spring:
           uri: http://notification-service:8080
           predicates:
             - Path=/api/v1/notifications/**
+
+app:
+  jwt:
+    keys-dir: ${APP_JWT_KEYS_DIR:./key}
+    public-key-file: public.pem
 
 logging:
   level:
