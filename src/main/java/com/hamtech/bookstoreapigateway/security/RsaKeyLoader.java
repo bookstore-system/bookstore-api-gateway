@@ -1,7 +1,6 @@
 package com.notfound.bookstoreapigateway.security;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyFactory;
