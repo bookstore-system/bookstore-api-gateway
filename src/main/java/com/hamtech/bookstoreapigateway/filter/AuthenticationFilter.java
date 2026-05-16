@@ -49,7 +49,12 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 "/api/auth/confirm-email",
                 "/api/auth/refresh-token",
                 "/api/v1/auth/register",
-                "/api/v1/auth/login"
+                "/api/v1/auth/login",
+                "/api/v1/promotions/**",
+                "/api/v1/reviews/**",
+                "/api/v1/books/**",
+                "/api/v1/categories/**",
+                "/api/v1/authors/**"
         );
 
         Predicate<ServerHttpRequest> isApiSecured = r -> publicEndpoints.stream()
