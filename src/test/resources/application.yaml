@@ -1,0 +1,4 @@
+app:
+  jwt:
+    keys-dir: src/test/resources/key
+    public-key-file: public.pem
