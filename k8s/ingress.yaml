@@ -1,0 +1,21 @@
+# Ingress mẫu (nginx). Đổi host, className theo cluster (traefik, alb, …).
+# Apply: kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml -f k8s/ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway
+  labels:
+    app: api-gateway
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.nhasachcongdong.id.vn
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080
