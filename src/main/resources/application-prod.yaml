@@ -9,7 +9,6 @@ spring:
   cloud:
     gateway:
       routes:
-        # --- Chuẩn micro (đã là /api/v1/... hoặc /api/... đúng service) ---
         - id: auth-service
           uri: http://user-service:8080
           predicates:
@@ -23,7 +22,7 @@ spring:
         - id: book-service
           uri: http://book-service:8080
           predicates:
-            - Path=/api/v1/books/**, /api/v1/categories/**, /api/v1/authors/**
+            - Path=/api/v1/books/**, /api/v1/categories/**, /api/v1/authors/**, /api/v1/admin/books/**, /api/v1/admin/**
 
         - id: cart-service
           uri: http://cart-service:8080
@@ -74,9 +73,26 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "${CORS_ALLOWED_ORIGINS:https://yourdomain.com}"
+              - "${CORS_ALLOWED_ORIGINS:http://www.nhasachcongdong.id.vn}"
+
+app:
+  jwt:
+    keys-dir: ${APP_JWT_KEYS_DIR:/key}
+    public-key-file: public.pem
 
 logging:
   level:
     root: WARN
     org.springframework.cloud.gateway: INFO
+
+# Actuator: chỉ health (K8s readiness/liveness dùng /actuator/health/readiness|liveness)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
