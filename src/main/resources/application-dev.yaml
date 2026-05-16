@@ -58,12 +58,12 @@ spring:
         - id: shipping-service
           uri: http://shipping-service:8080
           predicates:
-            - Path=/api/v1/shipping/**
+            - Path=/api/v1/shipment/**
 
         - id: news-service
           uri: http://news-service:8080
           predicates:
-            - Path=/api/news/**
+            - Path=/api/v1/news/**
 
         - id: ai-service
           uri: http://ai-service:8080
