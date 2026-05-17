@@ -42,7 +42,7 @@ spring:
         - id: promotion-service
           uri: http://promotion-service:8080
           predicates:
-            - Path=/api/v1/promotions/**
+            - Path=/api/v1/promotions, /api/v1/promotions/**
 
         - id: review-service
           uri: http://review-service:8080
