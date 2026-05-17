@@ -113,10 +113,29 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             return true;
         }
 
-        return (HttpMethod.GET.equals(method) && pathMatcher.match("/api/v1/promotions/active", path))
-                || (HttpMethod.GET.equals(method) && pathMatcher.match("/api/v1/promotions/book/**", path))
-                || (HttpMethod.POST.equals(method) && pathMatcher.match("/api/v1/promotions/validate", path))
-                || (HttpMethod.POST.equals(method) && pathMatcher.match("/api/v1/promotions/apply", path));
+        // promotion-service: public (khớp SecurityConfig + PromotionController)
+        // Còn lại /api/v1/promotions* cần JWT; service kiểm tra ROLE_ADMIN
+        return isPromotionPublicEndpoint(method, path);
+    }
+
+    /**
+     * Endpoint promotion không cần JWT tại gateway (đồng bộ promotion-service SecurityConfig).
+     * <ul>
+     *   <li>GET /active, /book/{bookId}</li>
+     *   <li>POST /validate, /apply</li>
+     * </ul>
+     * Admin (POST/PUT/DELETE/PATCH/GET danh sách &amp; theo id) vẫn bắt buộc Bearer token.
+     */
+    private boolean isPromotionPublicEndpoint(HttpMethod method, String path) {
+        if (HttpMethod.GET.equals(method)) {
+            return pathMatcher.match("/api/v1/promotions/active", path)
+                    || pathMatcher.match("/api/v1/promotions/book/**", path);
+        }
+        if (HttpMethod.POST.equals(method)) {
+            return pathMatcher.match("/api/v1/promotions/validate", path)
+                    || pathMatcher.match("/api/v1/promotions/apply", path);
+        }
+        return false;
     }
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
