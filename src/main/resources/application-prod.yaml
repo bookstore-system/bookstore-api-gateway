@@ -27,17 +27,22 @@ spring:
         - id: cart-service
           uri: http://cart-service:8080
           predicates:
-            - Path=/api/cart/**
+            - Path=/api/v1/cart/**
 
         - id: order-service
           uri: http://order-service:8080
           predicates:
             - Path=/api/v1/orders/**
 
+        - id: saga-orchestrator-service
+          uri: http://saga-orchestrator-service:8080
+          predicates:
+            - Path=/api/v1/checkout/**
+
         - id: payment-service
           uri: http://payment-service:8080
           predicates:
-            - Path=/api/payment/**
+            - Path=/api/v1/payment/**
 
         - id: promotion-service
           uri: http://promotion-service:8080
@@ -57,7 +62,7 @@ spring:
         - id: news-service
           uri: http://news-service:8080
           predicates:
-            - Path=/api/news/**
+            - Path=/api/v1/news/**
 
         - id: ai-service
           uri: http://ai-service:8080
