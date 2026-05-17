@@ -8,18 +8,19 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.file.Path;
 import java.security.PublicKey;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Gateway Authentication Filter sử dụng RS256.
@@ -29,6 +30,7 @@ import java.util.function.Predicate;
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private final PublicKey publicKey;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     public AuthenticationFilter(
             @Value("${app.jwt.keys-dir:/key}") String keysDir,
@@ -41,26 +43,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
 
-        final List<String> publicEndpoints = List.of(
-                "/api/auth/register",
-                "/api/auth/login",
-                "/api/auth/send-otp",
-                "/api/auth/verify-otp",
-                "/api/auth/confirm-email",
-                "/api/auth/refresh-token",
-                "/api/v1/auth/register",
-                "/api/v1/auth/login",
-                "/api/v1/promotions/**",
-                "/api/v1/reviews/**",
-                "/api/v1/books/**",
-                "/api/v1/categories/**",
-                "/api/v1/authors/**"
-        );
-
-        Predicate<ServerHttpRequest> isApiSecured = r -> publicEndpoints.stream()
-                .noneMatch(uri -> r.getURI().getPath().contains(uri));
-
-        if (isApiSecured.test(request)) {
+        if (!isPublicEndpoint(request)) {
             if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
                 return onError(exchange, "Missing Authorization Header", HttpStatus.UNAUTHORIZED);
             }
@@ -97,6 +80,43 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         return chain.filter(exchange);
+    }
+
+    private boolean isPublicEndpoint(ServerHttpRequest request) {
+        if (HttpMethod.OPTIONS.equals(request.getMethod())) {
+            return true;
+        }
+
+        String path = request.getURI().getPath();
+        HttpMethod method = request.getMethod();
+
+        final List<String> publicEndpoints = List.of(
+                "/api/auth/register",
+                "/api/auth/login",
+                "/api/auth/send-otp",
+                "/api/auth/verify-otp",
+                "/api/auth/confirm-email",
+                "/api/auth/refresh-token",
+                "/api/v1/auth/register",
+                "/api/v1/auth/login",
+                "/api/v1/reviews",
+                "/api/v1/reviews/**",
+                "/api/v1/books",
+                "/api/v1/books/**",
+                "/api/v1/categories",
+                "/api/v1/categories/**",
+                "/api/v1/authors",
+                "/api/v1/authors/**"
+        );
+
+        if (publicEndpoints.stream().anyMatch(uri -> pathMatcher.match(uri, path))) {
+            return true;
+        }
+
+        return (HttpMethod.GET.equals(method) && pathMatcher.match("/api/v1/promotions/active", path))
+                || (HttpMethod.GET.equals(method) && pathMatcher.match("/api/v1/promotions/book/**", path))
+                || (HttpMethod.POST.equals(method) && pathMatcher.match("/api/v1/promotions/validate", path))
+                || (HttpMethod.POST.equals(method) && pathMatcher.match("/api/v1/promotions/apply", path));
     }
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
