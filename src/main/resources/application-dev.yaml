@@ -33,7 +33,7 @@ spring:
         - id: cart-service
           uri: http://cart-service:8080
           predicates:
-            - Path=/api/cart/**
+            - Path=/api/v1/cart/**
 
         - id: order-service
           uri: http://order-service:8080
