@@ -57,7 +57,7 @@ spring:
         - id: shipping-service
           uri: http://shipping-service:8080
           predicates:
-            - Path=/api/v1/shipping/**
+            - Path=/api/v1/shipment/**
 
         - id: news-service
           uri: http://news-service:8080
@@ -67,7 +67,7 @@ spring:
         - id: ai-service
           uri: http://ai-service:8080
           predicates:
-            - Path=/api/v1/ai/**
+            - Path=/api/v1/ai/**, /api/v1/chatbot/chat/**
 
         - id: notification-service
           uri: http://notification-service:8080
@@ -78,7 +78,16 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "${CORS_ALLOWED_ORIGINS:http://www.nhasachcongdong.id.vn}"
+              - "${CORS_ALLOWED_ORIGINS:https://nhasachcongdong.id.vn}"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders: "*"
+            allowCredentials: true
 
 app:
   jwt:

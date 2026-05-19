@@ -57,18 +57,26 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh """
+                withCredentials([file(credentialsId: 'jwt-public-pem', variable: 'JWT_PUBLIC_PEM')]) {
+                    sh '''
                 export KUBECONFIG=/var/jenkins_home/.kube/config
 
-                # update image tag
-                sed -i "s|image: truongdocker1/bookstore-api-gateway:latest|image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${TAG}|g" k8s/deployment.yaml
+                # Public key only: gateway does not need private.pem.
+                kubectl create secret generic api-gateway-jwt-public-key \
+                  --from-file=public.pem="$JWT_PUBLIC_PEM" \
+                  --dry-run=client -o yaml | kubectl apply -f -
 
-                # 3. Deploy app
+                # Update image tag robustly, even if the workspace still has an older build tag.
+                sed -i "s|image: .*${IMAGE_NAME}:.*|image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${TAG}|g" k8s/deployment.yaml
+
+                # Deploy app + service + ingress.
                 kubectl apply -f k8s/deployment.yaml
                 kubectl apply -f k8s/service.yaml
+                kubectl apply -f k8s/ingress.yaml
 
-                kubectl rollout status deployment/${K8S_DEPLOYMENT}
-                """
+                kubectl rollout status deployment/${K8S_DEPLOYMENT} --timeout=180s
+                '''
+                }
             }
         }
     }
