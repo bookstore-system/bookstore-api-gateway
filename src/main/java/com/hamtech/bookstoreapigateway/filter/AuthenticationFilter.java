@@ -31,12 +31,16 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private final PublicKey publicKey;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
+    private final List<String> allowedOrigins;
 
     public AuthenticationFilter(
             @Value("${app.jwt.keys-dir:/key}") String keysDir,
-            @Value("${app.jwt.public-key-file:public.pem}") String publicKeyFile) {
+            @Value("${app.jwt.public-key-file:public.pem}") String publicKeyFile,
+            @Value("${CORS_ALLOWED_ORIGIN_MAIN:https://nhasachcongdong.id.vn}") String allowedOriginMain,
+            @Value("${CORS_ALLOWED_ORIGIN_WWW:https://www.nhasachcongdong.id.vn}") String allowedOriginWww) {
         Path dir = RsaKeyLoader.resolveKeysDir(keysDir);
         this.publicKey = RsaKeyLoader.loadPublicKey(dir, publicKeyFile);
+        this.allowedOrigins = List.of(allowedOriginMain, allowedOriginWww);
     }
 
     @Override
@@ -140,11 +144,26 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
         ServerHttpResponse response = exchange.getResponse();
+        addCorsHeaders(exchange, response);
         response.setStatusCode(httpStatus);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         String body = "{\"code\": " + httpStatus.value() + ", \"message\": \"" + err + "\"}";
         byte[] bytes = body.getBytes();
         return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
+    }
+
+    private void addCorsHeaders(ServerWebExchange exchange, ServerHttpResponse response) {
+        String origin = exchange.getRequest().getHeaders().getOrigin();
+        if (origin == null || !allowedOrigins.contains(origin)) {
+            return;
+        }
+
+        HttpHeaders headers = response.getHeaders();
+        headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
+        headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
+        headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,PATCH");
+        headers.add(HttpHeaders.VARY, HttpHeaders.ORIGIN);
     }
 
     @Override
