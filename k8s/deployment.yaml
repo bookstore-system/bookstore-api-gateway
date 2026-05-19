@@ -23,8 +23,10 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
-            - name: CORS_ALLOWED_ORIGINS
+            - name: CORS_ALLOWED_ORIGIN_MAIN
               value: "https://nhasachcongdong.id.vn"
+            - name: CORS_ALLOWED_ORIGIN_WWW
+              value: "https://www.nhasachcongdong.id.vn"
             - name: APP_JWT_KEYS_DIR
               value: "/key"
           volumeMounts:
