@@ -1,0 +1,197 @@
+version: '3.8'
+
+# FILE NÀY CHẠY TOÀN BỘ HỆ THỐNG INFRA ĐÃ ĐƯỢC PUSH LÊN DOCKER HUB
+# Nếu Dev A muốn dev 'user-service', họ chạy lệnh:
+# docker-compose -f docker-compose.dev.yml up -d --scale user-service=0
+
+services:
+  user-db:
+    image: mysql:8.0
+    container_name: user-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: bookstore_user
+      MYSQL_USER: bookstore
+      MYSQL_PASSWORD: bookstore
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - user_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - bookstore-network
+
+  book-db:
+    image: mysql:8.0
+    container_name: book-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: bookstore_book
+      MYSQL_USER: bookstore
+      MYSQL_PASSWORD: bookstore
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - book_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - bookstore-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - bookstore-network
+
+  api-gateway:
+    image: truongikpk/bookstore-api-gateway:v1.0.0
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    networks:
+      - bookstore-network
+
+  user-service:
+    image: truongikpk/bookstore-user-service:v1.0.0
+    container_name: user-service
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://user-db:3306/bookstore_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: bookstore
+      SPRING_DATASOURCE_PASSWORD: bookstore
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_RABBITMQ_HOST: rabbitmq
+    networks:
+      - bookstore-network
+    depends_on:
+      user-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  book-service:
+    image: truongikpk/bookstore-book-service:v1.0.0
+    container_name: book-service
+    ports:
+      - "8082:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://book-db:3306/bookstore_book?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: bookstore
+      SPRING_DATASOURCE_PASSWORD: bookstore
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_RABBITMQ_HOST: rabbitmq
+    networks:
+      - bookstore-network
+    depends_on:
+      book-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
+  cart-service:
+    image: truongikpk/bookstore-cart-service:v1.0.0
+    container_name: cart-service
+    ports:
+      - "8083:8080"
+    networks:
+      - bookstore-network
+
+  order-service:
+    image: truongikpk/bookstore-order-service:v1.0.0
+    container_name: order-service
+    ports:
+      - "8084:8080"
+    networks:
+      - bookstore-network
+
+  payment-service:
+    image: truongikpk/bookstore-payment-service:v1.0.0
+    container_name: payment-service
+    ports:
+      - "8085:8080"
+    networks:
+      - bookstore-network
+
+  promotion-service:
+    image: truongikpk/bookstore-promotion-service:v1.0.0
+    container_name: promotion-service
+    ports:
+      - "8086:8080"
+    networks:
+      - bookstore-network
+
+  review-service:
+    image: truongikpk/bookstore-review-service:v1.0.0
+    container_name: review-service
+    ports:
+      - "8087:8080"
+    networks:
+      - bookstore-network
+
+  shipping-service:
+    image: truongikpk/bookstore-shipping-service:v1.0.0
+    container_name: shipping-service
+    ports:
+      - "8088:8080"
+    networks:
+      - bookstore-network
+
+  news-service:
+    image: truongikpk/bookstore-news-service:v1.0.0
+    container_name: news-service
+    ports:
+      - "8089:8080"
+    networks:
+      - bookstore-network
+
+  ai-service:
+    image: truongikpk/bookstore-ai-service:v1.0.0
+    container_name: ai-service
+    ports:
+      - "8090:8080"
+    networks:
+      - bookstore-network
+
+  notification-service:
+    image: truongikpk/bookstore-notification-service:v1.0.0
+    container_name: notification-service
+    ports:
+      - "8091:8080"
+    networks:
+      - bookstore-network
+
+  frontend:
+    image: truongikpk/bookstore-frontend:v1.0.0
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - bookstore-network
+
+networks:
+  bookstore-network:
+    name: bookstore-network
+
+volumes:
+  user_mysql_data:
+  book_mysql_data:
+  rabbitmq-data:

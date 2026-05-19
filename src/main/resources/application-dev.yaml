@@ -1,0 +1,90 @@
+# ============================================================
+# Profile: dev  — dùng với Docker Compose (docker-compose.yml) hoặc local:
+#   mvn spring-boot:run -Dspring-boot.run.profiles=dev
+#
+# Biến môi trường (JWT, profile, …):
+#   - Docker: docker-compose.yml dùng env_file: .env + environment (SPRING_PROFILES_ACTIVE=dev).
+#   - Local không Docker: export biến hoặc cấu hình Run Configuration IDE / -DKEY=value.
+#
+# JWT public key: thư mục key/ (local ./key, Docker mount /key)
+#
+# FE gọi gateway với chuẩn /api/v1/... (không dùng /v1/api/...).
+# Các route "legacy" map path monolith cũ (/api/auth, /api/books, ...) → /api/v1/... trên micro.
+# ============================================================
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/v1/auth/**
+
+        - id: user-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/v1/users/**, /api/v1/admin/users/**, /api/v1/addresses/**, /api/v1/wishlist/**
+
+        - id: book-service
+          uri: http://book-service:8080
+          predicates:
+            - Path=/api/v1/books/**, /api/v1/categories/**, /api/v1/authors/**, /api/v1/admin/books/**, /api/v1/admin/**
+
+        - id: cart-service
+          uri: http://cart-service:8080
+          predicates:
+            - Path=/api/v1/cart/**
+
+        - id: order-service
+          uri: http://order-service:8080
+          predicates:
+            - Path=/api/v1/orders/**
+
+        - id: saga-orchestrator-service
+          uri: http://saga-orchestrator-service:8080
+          predicates:
+            - Path=/api/v1/checkout/**
+
+        - id: payment-service
+          uri: http://payment-service:8080
+          predicates:
+            - Path=/api/v1/payment/**
+
+        - id: promotion-service
+          uri: http://promotion-service:8080
+          predicates:
+            - Path=/api/v1/promotions, /api/v1/promotions/**
+
+        - id: review-service
+          uri: http://review-service:8080
+          predicates:
+            - Path=/api/v1/reviews/**
+
+        - id: shipping-service
+          uri: http://shipping-service:8080
+          predicates:
+            - Path=/api/v1/shipment/**
+
+        - id: news-service
+          uri: http://news-service:8080
+          predicates:
+            - Path=/api/v1/news/**
+
+        - id: ai-service
+          uri: http://ai-service:8080
+          predicates:
+            - Path=/api/v1/ai/**, /api/v1/chatbot/chat/**
+
+        - id: notification-service
+          uri: http://notification-service:8080
+          predicates:
+            - Path=/api/v1/notifications/**
+
+app:
+  jwt:
+    keys-dir: ${APP_JWT_KEYS_DIR:./key}
+    public-key-file: public.pem
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

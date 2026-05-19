@@ -15,11 +15,45 @@ spec:
         app: api-gateway
     spec:
       containers:
-      - name: api-gateway
-        image: truongikpk/bookstore-api-gateway:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-        env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: "prod"
+        - name: api-gateway
+          image: truongdocker1/bookstore-api-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://nhasachcongdong.id.vn"
+            - name: APP_JWT_KEYS_DIR
+              value: "/key"
+          volumeMounts:
+            - name: jwt-keys
+              mountPath: /key
+              readOnly: true
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        - name: jwt-keys
+          secret:
+            secretName: api-gateway-jwt-public-key
+            items:
+              - key: public.pem
+                path: public.pem

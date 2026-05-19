@@ -1,4 +1,4 @@
-package com.hamtech.bookstoreapigateway;
+package com.notfound.bookstoreapigateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
