@@ -6,6 +6,8 @@ metadata:
   name: api-gateway
   labels:
     app: api-gateway
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
 spec:
   ingressClassName: nginx
   rules:
