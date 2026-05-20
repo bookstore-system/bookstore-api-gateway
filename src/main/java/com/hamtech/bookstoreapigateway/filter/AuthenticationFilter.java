@@ -21,6 +21,7 @@ import reactor.core.publisher.Mono;
 import java.nio.file.Path;
 import java.security.PublicKey;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Gateway Authentication Filter sử dụng RS256.
@@ -28,6 +29,9 @@ import java.util.List;
  */
 @Component
 public class AuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final Pattern NEWS_ID_PATH =
+            Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private final PublicKey publicKey;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
@@ -127,21 +131,21 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * GET news công khai (đọc tin, danh sách, search) — không cần JWT tại gateway.
-     * POST/PUT/DELETE vẫn bắt buộc Bearer; news-service kiểm tra ADMIN qua X-User-Role.
+     * Guest (không JWT): chỉ đọc tin đã xuất bản — danh sách {@code /published} và chi tiết {@code /{uuid}}.
+     * Mọi endpoint news khác (thống kê, advanced-search, CRUD, …) bắt buộc Bearer + header X-User-*.
      */
     private boolean isNewsPublicEndpoint(HttpMethod method, String path) {
         if (!HttpMethod.GET.equals(method)) {
             return false;
         }
-        // Admin / user-scoped — cần JWT + X-User-* (news-service requireAdmin / requireUserId)
-        if (pathMatcher.match("/api/v1/news/statistics", path)
-                || pathMatcher.match("/api/v1/news/my-news", path)
-                || pathMatcher.match("/api/v1/news/my-news/**", path)) {
+        if (pathMatcher.match("/api/v1/news/published", path)) {
+            return true;
+        }
+        if (!pathMatcher.match("/api/v1/news/*", path)) {
             return false;
         }
-        return pathMatcher.match("/api/v1/news", path)
-                || pathMatcher.match("/api/v1/news/**", path);
+        String segment = path.substring("/api/v1/news/".length());
+        return !segment.isEmpty() && !segment.contains("/") && NEWS_ID_PATH.matcher(segment).matches();
     }
 
     /**
