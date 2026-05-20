@@ -117,9 +117,31 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             return true;
         }
 
+        if (isNewsPublicEndpoint(method, path)) {
+            return true;
+        }
+
         // promotion-service: public (khớp SecurityConfig + PromotionController)
         // Còn lại /api/v1/promotions* cần JWT; service kiểm tra ROLE_ADMIN
         return isPromotionPublicEndpoint(method, path);
+    }
+
+    /**
+     * GET news công khai (đọc tin, danh sách, search) — không cần JWT tại gateway.
+     * POST/PUT/DELETE vẫn bắt buộc Bearer; news-service kiểm tra ADMIN qua X-User-Role.
+     */
+    private boolean isNewsPublicEndpoint(HttpMethod method, String path) {
+        if (!HttpMethod.GET.equals(method)) {
+            return false;
+        }
+        // Admin / user-scoped — cần JWT + X-User-* (news-service requireAdmin / requireUserId)
+        if (pathMatcher.match("/api/v1/news/statistics", path)
+                || pathMatcher.match("/api/v1/news/my-news", path)
+                || pathMatcher.match("/api/v1/news/my-news/**", path)) {
+            return false;
+        }
+        return pathMatcher.match("/api/v1/news", path)
+                || pathMatcher.match("/api/v1/news/**", path);
     }
 
     /**
