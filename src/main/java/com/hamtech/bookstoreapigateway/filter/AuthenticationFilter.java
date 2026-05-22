@@ -107,8 +107,6 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 "/api/auth/refresh-token",
                 "/api/v1/auth/register",
                 "/api/v1/auth/login",
-                "/api/v1/reviews",
-                "/api/v1/reviews/**",
                 "/api/v1/books",
                 "/api/v1/books/**",
                 "/api/v1/categories",
@@ -122,6 +120,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         if (isNewsPublicEndpoint(method, path)) {
+            return true;
+        }
+
+        if (isReviewPublicEndpoint(method, path)) {
             return true;
         }
 
@@ -156,6 +158,15 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * </ul>
      * Admin (POST/PUT/DELETE/PATCH/GET danh sách &amp; theo id) vẫn bắt buộc Bearer token.
      */
+    /** Guest: đọc review theo sách; gửi review (POST add) bắt buộc Bearer JWT. */
+    private boolean isReviewPublicEndpoint(HttpMethod method, String path) {
+        if (!HttpMethod.GET.equals(method)) {
+            return false;
+        }
+        return pathMatcher.match("/api/v1/reviews/book/**", path)
+                || pathMatcher.match("/api/v1/reviews/users/**/count", path);
+    }
+
     private boolean isPromotionPublicEndpoint(HttpMethod method, String path) {
         if (HttpMethod.GET.equals(method)) {
             return pathMatcher.match("/api/v1/promotions/active", path)
