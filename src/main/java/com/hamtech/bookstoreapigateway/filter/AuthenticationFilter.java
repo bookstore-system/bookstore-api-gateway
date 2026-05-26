@@ -129,6 +129,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
         // promotion-service: public (khớp SecurityConfig + PromotionController)
         // Còn lại /api/v1/promotions* cần JWT; service kiểm tra ROLE_ADMIN
+        if (isPaymentGatewayEndpoint(method, path)) {
+            return true;
+        }
+
         return isPromotionPublicEndpoint(method, path);
     }
 
@@ -175,6 +179,19 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         if (HttpMethod.POST.equals(method)) {
             return pathMatcher.match("/api/v1/promotions/validate", path)
                     || pathMatcher.match("/api/v1/promotions/apply", path);
+        }
+        return false;
+    }
+
+    private boolean isPaymentGatewayEndpoint(HttpMethod method, String path) {
+        if (HttpMethod.GET.equals(method)) {
+            return pathMatcher.match("/api/v1/payment/vnpay/callback", path)
+                    || pathMatcher.match("/api/v1/payment/zalopay/return", path)
+                    || pathMatcher.match("/api/v1/payment/momo/return", path);
+        }
+        if (HttpMethod.POST.equals(method)) {
+            return pathMatcher.match("/api/v1/payment/zalopay/callback", path)
+                    || pathMatcher.match("/api/v1/payment/momo/callback", path);
         }
         return false;
     }
