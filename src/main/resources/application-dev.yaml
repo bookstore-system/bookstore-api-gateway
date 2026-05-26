@@ -25,6 +25,16 @@ spring:
           predicates:
             - Path=/api/v1/users/**, /api/v1/admin/users/**, /api/v1/addresses/**, /api/v1/wishlist/**
 
+        - id: admin-dashboard-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/v1/admin/dashboard/**
+
+        - id: admin-statistics-service
+          uri: http://user-service:8080
+          predicates:
+            - Path=/api/v1/admin/statistics/**
+
         - id: book-service
           uri: http://book-service:8080
           predicates:

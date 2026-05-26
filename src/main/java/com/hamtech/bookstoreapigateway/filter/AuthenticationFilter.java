@@ -21,6 +21,7 @@ import reactor.core.publisher.Mono;
 import java.nio.file.Path;
 import java.security.PublicKey;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Gateway Authentication Filter sử dụng RS256.
@@ -28,6 +29,9 @@ import java.util.List;
  */
 @Component
 public class AuthenticationFilter implements GlobalFilter, Ordered {
+
+    private static final Pattern NEWS_ID_PATH =
+            Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     private final PublicKey publicKey;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
@@ -103,8 +107,6 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 "/api/auth/refresh-token",
                 "/api/v1/auth/register",
                 "/api/v1/auth/login",
-                "/api/v1/reviews",
-                "/api/v1/reviews/**",
                 "/api/v1/books",
                 "/api/v1/books/**",
                 "/api/v1/categories",
@@ -117,9 +119,35 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             return true;
         }
 
+        if (isNewsPublicEndpoint(method, path)) {
+            return true;
+        }
+
+        if (isReviewPublicEndpoint(method, path)) {
+            return true;
+        }
+
         // promotion-service: public (khớp SecurityConfig + PromotionController)
         // Còn lại /api/v1/promotions* cần JWT; service kiểm tra ROLE_ADMIN
         return isPromotionPublicEndpoint(method, path);
+    }
+
+    /**
+     * Guest (không JWT): chỉ đọc tin đã xuất bản — danh sách {@code /published} và chi tiết {@code /{uuid}}.
+     * Mọi endpoint news khác (thống kê, advanced-search, CRUD, …) bắt buộc Bearer + header X-User-*.
+     */
+    private boolean isNewsPublicEndpoint(HttpMethod method, String path) {
+        if (!HttpMethod.GET.equals(method)) {
+            return false;
+        }
+        if (pathMatcher.match("/api/v1/news/published", path)) {
+            return true;
+        }
+        if (!pathMatcher.match("/api/v1/news/*", path)) {
+            return false;
+        }
+        String segment = path.substring("/api/v1/news/".length());
+        return !segment.isEmpty() && !segment.contains("/") && NEWS_ID_PATH.matcher(segment).matches();
     }
 
     /**
@@ -130,6 +158,15 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
      * </ul>
      * Admin (POST/PUT/DELETE/PATCH/GET danh sách &amp; theo id) vẫn bắt buộc Bearer token.
      */
+    /** Guest: đọc review theo sách; gửi review (POST add) bắt buộc Bearer JWT. */
+    private boolean isReviewPublicEndpoint(HttpMethod method, String path) {
+        if (!HttpMethod.GET.equals(method)) {
+            return false;
+        }
+        return pathMatcher.match("/api/v1/reviews/book/**", path)
+                || pathMatcher.match("/api/v1/reviews/users/**/count", path);
+    }
+
     private boolean isPromotionPublicEndpoint(HttpMethod method, String path) {
         if (HttpMethod.GET.equals(method)) {
             return pathMatcher.match("/api/v1/promotions/active", path)

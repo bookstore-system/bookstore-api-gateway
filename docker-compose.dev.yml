@@ -45,6 +45,26 @@ services:
     networks:
       - bookstore-network
 
+  saga-db:
+    image: mysql:8.0
+    container_name: saga-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: bookstore_saga
+      MYSQL_USER: bookstore
+      MYSQL_PASSWORD: bookstore
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - saga_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - bookstore-network
+
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
@@ -62,8 +82,13 @@ services:
     container_name: api-gateway
     ports:
       - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
     networks:
       - bookstore-network
+    depends_on:
+      saga-orchestrator-service:
+        condition: service_started
 
   user-service:
     image: truongikpk/bookstore-user-service:v1.0.0
@@ -179,6 +204,30 @@ services:
     networks:
       - bookstore-network
 
+  saga-orchestrator-service:
+    image: truongikpk/bookstore-saga-orchestrator-service:v1.0.0
+    container_name: saga-orchestrator-service
+    ports:
+      - "8092:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:mysql://saga-db:3306/bookstore_saga?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: bookstore
+      SPRING_DATASOURCE_PASSWORD: bookstore
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      SPRING_RABBITMQ_HOST: rabbitmq
+    networks:
+      - bookstore-network
+    depends_on:
+      saga-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+
   frontend:
     image: truongikpk/bookstore-frontend:v1.0.0
     container_name: frontend
@@ -194,4 +243,5 @@ networks:
 volumes:
   user_mysql_data:
   book_mysql_data:
+  saga_mysql_data:
   rabbitmq-data:
