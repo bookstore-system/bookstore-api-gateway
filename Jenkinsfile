@@ -57,7 +57,10 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'jwt-public-pem', variable: 'JWT_PUBLIC_PEM')]) {
+                withCredentials([
+                    file(credentialsId: 'jwt-public-pem', variable: 'JWT_PUBLIC_PEM'),
+                    string(credentialsId: 'redis-password', variable: 'REDIS_PASSWORD')
+                ]) {
                     sh '''
                 export KUBECONFIG=/var/jenkins_home/.kube/config
 
@@ -66,10 +69,16 @@ pipeline {
                   --from-file=public.pem="$JWT_PUBLIC_PEM" \
                   --dry-run=client -o yaml | kubectl apply -f -
 
+                # Redis password for gateway rate limiting. Host/port/username/SSL are in k8s/configmap.yaml.
+                kubectl create secret generic api-gateway-secret \
+                  --from-literal=SPRING_DATA_REDIS_PASSWORD="$REDIS_PASSWORD" \
+                  --dry-run=client -o yaml | kubectl apply -f -
+
                 # Update image tag robustly, even if the workspace still has an older build tag.
                 sed -i "s|image: .*${IMAGE_NAME}:.*|image: ${DOCKER_REGISTRY}/${IMAGE_NAME}:${TAG}|g" k8s/deployment.yaml
 
                 # Deploy app + service + ingress.
+                kubectl apply -f k8s/configmap.yaml
                 kubectl apply -f k8s/deployment.yaml
                 kubectl apply -f k8s/service.yaml
                 kubectl apply -f k8s/ingress.yaml

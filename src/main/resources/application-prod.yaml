@@ -6,6 +6,15 @@
 # Routes giống application-dev.yaml; khác biệt: CORS + logging.
 # ============================================================
 spring:
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis-bookstore-do-user-36177370-0.j.db.ondigitalocean.com}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:default}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      ssl:
+        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:true}
+
   cloud:
     gateway:
       default-filters:

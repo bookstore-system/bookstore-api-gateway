@@ -7,6 +7,20 @@ version: '3.8'
 # ============================================================
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - bookstore-network
+
   api-gateway:
     build: 
       context: .
@@ -24,10 +38,16 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: dev
       APP_JWT_KEYS_DIR: /key
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_SSL_ENABLED: "false"
     # Profile dev → application-dev.yaml
     command: mvn spring-boot:run -Dspring-boot.run.profiles=dev
     networks:
       - bookstore-network
+    depends_on:
+      redis:
+        condition: service_healthy
 
 networks:
   bookstore-network:
