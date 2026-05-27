@@ -29,6 +29,31 @@ spec:
               value: "https://www.nhasachcongdong.id.vn"
             - name: APP_JWT_KEYS_DIR
               value: "/key"
+            - name: SPRING_DATA_REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: api-gateway-config
+                  key: SPRING_DATA_REDIS_HOST
+            - name: SPRING_DATA_REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: api-gateway-config
+                  key: SPRING_DATA_REDIS_PORT
+            - name: SPRING_DATA_REDIS_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: api-gateway-config
+                  key: SPRING_DATA_REDIS_USERNAME
+            - name: SPRING_DATA_REDIS_SSL_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: api-gateway-config
+                  key: SPRING_DATA_REDIS_SSL_ENABLED
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: api-gateway-secret
+                  key: SPRING_DATA_REDIS_PASSWORD
           volumeMounts:
             - name: jwt-keys
               mountPath: /key
