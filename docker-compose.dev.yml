@@ -77,6 +77,20 @@ services:
     networks:
       - bookstore-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - bookstore-network
+
   api-gateway:
     image: truongikpk/bookstore-api-gateway:v1.0.0
     container_name: api-gateway
@@ -84,9 +98,14 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_SSL_ENABLED: "false"
     networks:
       - bookstore-network
     depends_on:
+      redis:
+        condition: service_healthy
       saga-orchestrator-service:
         condition: service_started
 

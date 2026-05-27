@@ -9,9 +9,17 @@
 # JWT public key: thư mục key/ (local ./key, Docker mount /key)
 #
 # FE gọi gateway với chuẩn /api/v1/... (không dùng /v1/api/...).
-# Các route "legacy" map path monolith cũ (/api/auth, /api/books, ...) → /api/v1/... trên micro.
 # ============================================================
 spring:
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      username: ${SPRING_DATA_REDIS_USERNAME:}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      ssl:
+        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:false}
+
   cloud:
     gateway:
       routes:
