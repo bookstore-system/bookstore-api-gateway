@@ -99,14 +99,15 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         HttpMethod method = request.getMethod();
 
         final List<String> publicEndpoints = List.of(
-                "/api/auth/register",
-                "/api/auth/login",
-                "/api/auth/send-otp",
-                "/api/auth/verify-otp",
-                "/api/auth/confirm-email",
-                "/api/auth/refresh-token",
                 "/api/v1/auth/register",
                 "/api/v1/auth/login",
+                "/api/v1/auth/google/callback",
+                "/api/auth/google/callback",
+                "/api/v1/auth/send-otp",
+                "/api/v1/auth/verify-otp",
+                "/api/v1/auth/verify-email",
+                "/api/v1/auth/confirm-email",
+                "/api/v1/auth/refresh-token",
                 "/api/v1/books",
                 "/api/v1/books/**",
                 "/api/v1/categories",
