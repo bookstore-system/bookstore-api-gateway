@@ -138,21 +138,27 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     /**
-     * Guest (không JWT): chỉ đọc tin đã xuất bản — danh sách {@code /published} và chi tiết {@code /{uuid}}.
+     * Guest (không JWT): chỉ đọc tin đã xuất bản, xem popular tags, và ghi nhận tag search.
      * Mọi endpoint news khác (thống kê, advanced-search, CRUD, …) bắt buộc Bearer + header X-User-*.
      */
     private boolean isNewsPublicEndpoint(HttpMethod method, String path) {
-        if (!HttpMethod.GET.equals(method)) {
-            return false;
+        if (HttpMethod.GET.equals(method)) {
+            if (pathMatcher.match("/api/v1/news/published", path)
+                    || pathMatcher.match("/api/v1/news/popular-tags", path)) {
+                return true;
+            }
+            if (!pathMatcher.match("/api/v1/news/*", path)) {
+                return false;
+            }
+            String segment = path.substring("/api/v1/news/".length());
+            return !segment.isEmpty() && !segment.contains("/") && NEWS_ID_PATH.matcher(segment).matches();
         }
-        if (pathMatcher.match("/api/v1/news/published", path)) {
-            return true;
+
+        if (HttpMethod.POST.equals(method)) {
+            return pathMatcher.match("/api/v1/news/tag-searches", path);
         }
-        if (!pathMatcher.match("/api/v1/news/*", path)) {
-            return false;
-        }
-        String segment = path.substring("/api/v1/news/".length());
-        return !segment.isEmpty() && !segment.contains("/") && NEWS_ID_PATH.matcher(segment).matches();
+
+        return false;
     }
 
     /**
