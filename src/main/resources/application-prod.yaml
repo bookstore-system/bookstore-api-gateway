@@ -74,6 +74,8 @@ spring:
           uri: http://review-service:8080
           predicates:
             - Path=/api/v1/reviews/**
+          filters:
+            - RemoveRequestHeader=Authorization
 
         - id: shipping-service
           uri: http://shipping-service:8080
