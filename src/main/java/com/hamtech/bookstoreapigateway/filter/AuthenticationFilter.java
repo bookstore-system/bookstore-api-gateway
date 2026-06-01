@@ -8,6 +8,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -30,6 +31,8 @@ import java.util.regex.Pattern;
 @Component
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
+    private static final String ACCESS_TOKEN_COOKIE = "access_token";
+
     private static final Pattern NEWS_ID_PATH =
             Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
@@ -41,10 +44,11 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             @Value("${app.jwt.keys-dir:/key}") String keysDir,
             @Value("${app.jwt.public-key-file:public.pem}") String publicKeyFile,
             @Value("${CORS_ALLOWED_ORIGIN_MAIN:https://nhasachcongdong.id.vn}") String allowedOriginMain,
-            @Value("${CORS_ALLOWED_ORIGIN_WWW:https://www.nhasachcongdong.id.vn}") String allowedOriginWww) {
+            @Value("${CORS_ALLOWED_ORIGIN_WWW:https://www.nhasachcongdong.id.vn}") String allowedOriginWww,
+            @Value("${CORS_ALLOWED_ORIGIN_LOCAL:http://localhost:3000}") String allowedOriginLocal) {
         Path dir = RsaKeyLoader.resolveKeysDir(keysDir);
         this.publicKey = RsaKeyLoader.loadPublicKey(dir, publicKeyFile);
-        this.allowedOrigins = List.of(allowedOriginMain, allowedOriginWww);
+        this.allowedOrigins = List.of(allowedOriginMain, allowedOriginWww, allowedOriginLocal);
     }
 
     @Override
@@ -52,16 +56,10 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
 
         if (!isPublicEndpoint(request)) {
-            if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+            String token = resolveBearerToken(request);
+            if (token == null) {
                 return onError(exchange, "Missing Authorization Header", HttpStatus.UNAUTHORIZED);
             }
-
-            String authHeader = request.getHeaders().getOrEmpty(HttpHeaders.AUTHORIZATION).get(0);
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return onError(exchange, "Invalid Authorization Header", HttpStatus.UNAUTHORIZED);
-            }
-
-            String token = authHeader.substring(7);
 
             try {
                 Claims claims = Jwts.parser()
@@ -75,7 +73,9 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 String userId = claims.get("userId", String.class);
 
                 ServerHttpRequest mutatedRequest = request.mutate()
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .header("X-User-Name", username != null ? username : "")
+                        .header("X-User-Email", username != null ? username : "")
                         .header("X-User-Role", role != null ? role : "")
                         .header("X-User-Id", userId != null ? userId : "")
                         .build();
@@ -88,6 +88,22 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         return chain.filter(exchange);
+    }
+
+    private String resolveBearerToken(ServerHttpRequest request) {
+        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7).trim();
+            return token.isEmpty() ? null : token;
+        }
+
+        HttpCookie accessTokenCookie = request.getCookies().getFirst(ACCESS_TOKEN_COOKIE);
+        if (accessTokenCookie == null) {
+            return null;
+        }
+
+        String token = accessTokenCookie.getValue();
+        return token == null || token.isBlank() ? null : token.trim();
     }
 
     private boolean isPublicEndpoint(ServerHttpRequest request) {
@@ -108,6 +124,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 "/api/v1/auth/verify-email",
                 "/api/v1/auth/confirm-email",
                 "/api/v1/auth/refresh-token",
+                "/api/v1/auth/logout",
                 "/api/v1/books",
                 "/api/v1/books/**",
                 "/api/v1/categories",
