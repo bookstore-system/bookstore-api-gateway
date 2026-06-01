@@ -17,6 +17,7 @@ FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
 COPY --from=build /workspace/target/*.jar app.jar
+RUN test -s /app/app.jar
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
