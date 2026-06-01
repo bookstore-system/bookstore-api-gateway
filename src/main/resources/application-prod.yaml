@@ -76,6 +76,7 @@ spring:
             - Path=/api/v1/reviews/**
           filters:
             - RemoveRequestHeader=Authorization
+            - RemoveRequestHeader=Origin
 
         - id: shipping-service
           uri: http://shipping-service:8080
