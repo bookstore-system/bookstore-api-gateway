@@ -123,6 +123,8 @@ logging:
   level:
     root: WARN
     org.springframework.cloud.gateway: INFO
+    org.springframework.web.cors: DEBUG
+    com.notfound.bookstoreapigateway.filter.AuthenticationFilter: DEBUG
 
 # Actuator: chỉ health (K8s readiness/liveness dùng /actuator/health/readiness|liveness)
 management:

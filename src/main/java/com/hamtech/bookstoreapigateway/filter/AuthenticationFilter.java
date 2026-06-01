@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpMethod;
@@ -31,6 +33,8 @@ import java.util.regex.Pattern;
 @Component
 public class AuthenticationFilter implements GlobalFilter, Ordered {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationFilter.class);
+
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
 
     private static final Pattern NEWS_ID_PATH =
@@ -54,10 +58,32 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        String path = request.getURI().getPath();
+        HttpMethod method = request.getMethod();
+        String origin = request.getHeaders().getOrigin();
+        boolean hasAuthorizationHeader = request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION);
+        boolean hasAccessTokenCookie = request.getCookies().containsKey(ACCESS_TOKEN_COOKIE);
+        boolean publicEndpoint = isPublicEndpoint(request);
 
-        if (!isPublicEndpoint(request)) {
+        log.debug(
+                "Gateway auth request method={} path={} origin={} public={} hasAuthorizationHeader={} hasAccessTokenCookie={}",
+                method,
+                path,
+                origin,
+                publicEndpoint,
+                hasAuthorizationHeader,
+                hasAccessTokenCookie);
+
+        if (!publicEndpoint) {
             String token = resolveBearerToken(request);
             if (token == null) {
+                log.warn(
+                        "Gateway auth rejected missing token method={} path={} origin={} hasAuthorizationHeader={} hasAccessTokenCookie={}",
+                        method,
+                        path,
+                        origin,
+                        hasAuthorizationHeader,
+                        hasAccessTokenCookie);
                 return onError(exchange, "Missing Authorization Header", HttpStatus.UNAUTHORIZED);
             }
 
@@ -71,6 +97,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 String username = claims.getSubject();
                 String role = claims.get("role", String.class);
                 String userId = claims.get("userId", String.class);
+                boolean reviewRoute = pathMatcher.match("/api/v1/reviews/**", path);
 
                 ServerHttpRequest mutatedRequest = request.mutate()
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -80,13 +107,29 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                         .header("X-User-Id", userId != null ? userId : "")
                         .build();
 
+                log.debug(
+                        "Gateway auth accepted method={} path={} reviewRoute={} userId={} role={} subject={}",
+                        method,
+                        path,
+                        reviewRoute,
+                        mask(userId),
+                        role,
+                        username);
+
                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
             } catch (Exception e) {
+                log.warn(
+                        "Gateway auth rejected invalid token method={} path={} origin={} error={}",
+                        method,
+                        path,
+                        origin,
+                        e.getMessage());
                 return onError(exchange, "Token invalid or expired: " + e.getMessage(), HttpStatus.UNAUTHORIZED);
             }
         }
 
+        log.debug("Gateway auth skipped public endpoint method={} path={} origin={}", method, path, origin);
         return chain.filter(exchange);
     }
 
@@ -222,6 +265,13 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
         ServerHttpResponse response = exchange.getResponse();
+        ServerHttpRequest request = exchange.getRequest();
+        log.warn(
+                "Gateway auth response status={} method={} path={} message={}",
+                httpStatus.value(),
+                request.getMethod(),
+                request.getURI().getPath(),
+                err);
         addCorsHeaders(exchange, response);
         response.setStatusCode(httpStatus);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
@@ -233,6 +283,12 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     private void addCorsHeaders(ServerWebExchange exchange, ServerHttpResponse response) {
         String origin = exchange.getRequest().getHeaders().getOrigin();
         if (origin == null || !allowedOrigins.contains(origin)) {
+            if (origin != null) {
+                log.warn(
+                        "Gateway auth error response without CORS headers origin={} allowedOrigins={}",
+                        origin,
+                        allowedOrigins);
+            }
             return;
         }
 
@@ -242,6 +298,17 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "*");
         headers.set(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,DELETE,OPTIONS,PATCH");
         headers.add(HttpHeaders.VARY, HttpHeaders.ORIGIN);
+    }
+
+    private String mask(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() <= 8) {
+            return "***";
+        }
+        return trimmed.substring(0, 4) + "..." + trimmed.substring(trimmed.length() - 4);
     }
 
     @Override
