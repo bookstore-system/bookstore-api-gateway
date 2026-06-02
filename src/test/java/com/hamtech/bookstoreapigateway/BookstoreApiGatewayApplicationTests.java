@@ -2,6 +2,7 @@ package com.notfound.bookstoreapigateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.notfound.bookstoreapigateway.filter.AuthRateLimitFilter;
+import com.notfound.bookstoreapigateway.filter.AuthenticationFilter;
 import com.notfound.bookstoreapigateway.filter.UserTokenBucketRateLimitFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -176,6 +177,40 @@ class BookstoreApiGatewayApplicationTests {
         verify(redisTemplate, never()).execute(any(RedisScript.class), anyList(), anyList());
     }
 
+    @Test
+    void catalogGetAuthorsIsPublicAndForwardsAnonymousRequest() {
+        AuthenticationFilter filter = authenticationFilter();
+        AtomicReference<ServerWebExchange> forwardedExchange = new AtomicReference<>();
+        GatewayFilterChain chain = exchange -> {
+            forwardedExchange.set(exchange);
+            return Mono.empty();
+        };
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v1/authors")
+        );
+
+        filter.filter(exchange, chain).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isNull();
+        assertThat(forwardedExchange.get()).isNotNull();
+    }
+
+    @Test
+    void catalogPostAuthorsRequiresTokenAtGateway() {
+        AuthenticationFilter filter = authenticationFilter();
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v1/authors")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"name\":\"Nguyen Nhat Anh\"}")
+        );
+
+        filter.filter(exchange, chain).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(chain, never()).filter(any(ServerWebExchange.class));
+    }
+
     private String readBody(ServerWebExchange exchange) {
         return exchange.getRequest().getBody()
                 .map(dataBuffer -> {
@@ -186,5 +221,14 @@ class BookstoreApiGatewayApplicationTests {
                 .collectList()
                 .map(parts -> String.join("", parts))
                 .block();
+    }
+
+    private AuthenticationFilter authenticationFilter() {
+        return new AuthenticationFilter(
+                "src/test/resources/key",
+                "public.pem",
+                "https://nhasachcongdong.id.vn",
+                "https://www.nhasachcongdong.id.vn",
+                "http://localhost:3000");
     }
 }
