@@ -167,16 +167,14 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
                 "/api/v1/auth/verify-email",
                 "/api/v1/auth/confirm-email",
                 "/api/v1/auth/refresh-token",
-                "/api/v1/auth/logout",
-                "/api/v1/books",
-                "/api/v1/books/**",
-                "/api/v1/categories",
-                "/api/v1/categories/**",
-                "/api/v1/authors",
-                "/api/v1/authors/**"
+                "/api/v1/auth/logout"
         );
 
         if (publicEndpoints.stream().anyMatch(uri -> pathMatcher.match(uri, path))) {
+            return true;
+        }
+
+        if (isCatalogPublicEndpoint(method, path)) {
             return true;
         }
 
@@ -195,6 +193,18 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         return isPromotionPublicEndpoint(method, path);
+    }
+
+    private boolean isCatalogPublicEndpoint(HttpMethod method, String path) {
+        if (!HttpMethod.GET.equals(method)) {
+            return false;
+        }
+        return pathMatcher.match("/api/v1/books", path)
+                || pathMatcher.match("/api/v1/books/**", path)
+                || pathMatcher.match("/api/v1/categories", path)
+                || pathMatcher.match("/api/v1/categories/**", path)
+                || pathMatcher.match("/api/v1/authors", path)
+                || pathMatcher.match("/api/v1/authors/**", path);
     }
 
     /**
